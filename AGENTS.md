@@ -67,9 +67,15 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
 - **Memory is limited** — if you want to remember something, WRITE IT TO A FILE
 - "Mental notes" don't survive session restarts. Files do.
 - When someone says "remember this" → update `memory/YYYY-MM-DD.md` or relevant file
-- When you learn a lesson → update AGENTS.md, TOOLS.md, or the relevant skill
-- When you make a mistake → document it so future-you doesn't repeat it
+- When you learn a lesson → update `.learnings/LEARNINGS.md`（具体经验）或 `AGENTS.md`（通用原则）
+- When you make a mistake → document to `.learnings/ERRORS.md` so future-you doesn't repeat it
 - **Text > Brain** 📝
+
+**记录系统统一原则**:
+- `AGENTS.md` = 宪法（通用原则，不常改）
+- `.learnings/` = 日志（具体事件，经常更新）
+- `memory/` = 日记（当天上下文，过后归档）
+- `.evolution.md` = 进化档案（重大里程碑）
 
 ## Safety
 
