@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenClaw 实时监控中心</title>
+  <link rel="stylesheet" href="/styles/main.css">
+</head>
+<body>
+  <div class="container">
+    <!-- 顶部导航栏 -->
+    <nav class="top-nav">
+      <div class="nav-brand">
+        <span class="brand-emoji">🐾</span>
+        <span class="brand-title">OpenClaw 监控中心</span>
+      </div>
+      <div class="nav-status">
+        <span class="status-dot online"></span>
+        <span class="status-text">系统运行正常</span>
+      </div>
+    </nav>
+
+    <!-- 头部：核心指标卡片 -->
+    <header class="dashboard-header">
+      <div class="metric-card primary">
+        <div class="metric-header">
+          <span class="metric-icon">💚</span>
+          <span class="metric-label">健康评分</span>
+        </div>
+        <div class="metric-value" id="healthScore">--</div>
+        <div class="metric-trend" id="healthStatus">检测中...</div>
+      </div>
+      
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-icon">🖥️</span>
+          <span class="metric-label">网关状态</span>
+        </div>
+        <div class="metric-value" id="gatewayStatus">--</div>
+        <div class="metric-sub">实时更新</div>
+      </div>
+      
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-icon">💬</span>
+          <span class="metric-label">飞书通道</span>
+        </div>
+        <div class="metric-value" id="feishuStatus">--</div>
+        <div class="metric-sub">消息收发</div>
+      </div>
+      
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-icon">⚠️</span>
+          <span class="metric-label">今日错误</span>
+        </div>
+        <div class="metric-value" id="errorCount">0</div>
+        <div class="metric-sub">需要关注</div>
+      </div>
+      
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-icon">⏳</span>
+          <span class="metric-label">等待任务</span>
+        </div>
+        <div class="metric-value" id="queueAhead">0</div>
+        <div class="metric-sub">队列中</div>
+      </div>
+      
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-icon">💰</span>
+          <span class="metric-label">今日 Token</span>
+        </div>
+        <div class="metric-value" id="todayTokens">0</div>
+        <div class="metric-sub">消耗量</div>
+      </div>
+    </header>
+
+    <!-- 工具栏 -->
+    <div class="toolbar">
+      <div class="filter-group">
+        <span class="filter-label">日志级别：</span>
+        <div class="filter-buttons">
+          <button class="filter-btn active" data-level="all">全部</button>
+          <button class="filter-btn" data-level="info">✅ 信息</button>
+          <button class="filter-btn" data-level="warn">⚠️ 警告</button>
+          <button class="filter-btn" data-level="error">❌ 错误</button>
+        </div>
+      </div>
+      <div class="search-group">
+        <input type="text" id="searchInput" placeholder="🔍 搜索日志内容...">
+        <button class="lang-toggle" id="toggleLang" title="切换语言">🇨🇳 中文</button>
+      </div>
+    </div>
+
+    <!-- 主要监控区域 - 两栏布局 -->
+    <div class="main-grid">
+      <!-- 左侧：实时日志流 -->
+      <div class="left-panel">
+        <div class="panel-card log-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="title-emoji">📜</span>
+              <span>实时日志流</span>
+            </div>
+            <div class="live-badge">
+              <span class="pulse-dot"></span>
+              <span>直播中</span>
+            </div>
+          </div>
+          <div class="log-stream" id="logStream">
+            <!-- 日志动态插入 -->
+          </div>
+        </div>
+
+        <!-- 任务执行时间线 -->
+        <div class="panel-card timeline-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="title-emoji">⏱️</span>
+              <span>任务执行时间线</span>
+            </div>
+          </div>
+          <div class="timeline-container" id="timelineContainer">
+            <!-- 时间线索动态生成 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧：数据可视化 -->
+      <div class="right-panel">
+        <!-- 任务队列状态 -->
+        <div class="panel-card queue-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="title-emoji">🚦</span>
+              <span>任务队列状态</span>
+            </div>
+            <div class="queue-status-badge" id="queueStatusBadge">正常</div>
+          </div>
+          <div class="queue-stats-grid">
+            <div class="queue-stat-item">
+              <div class="stat-icon">⏳</div>
+              <div class="stat-value" id="queueWaiting">0</div>
+              <div class="stat-label">等待中</div>
+            </div>
+            <div class="queue-stat-item">
+              <div class="stat-icon">🔄</div>
+              <div class="stat-value" id="queueRunning">0</div>
+              <div class="stat-label">执行中</div>
+            </div>
+            <div class="queue-stat-item">
+              <div class="stat-icon">✅</div>
+              <div class="stat-value" id="queueCompleted">0</div>
+              <div class="stat-label">已完成</div>
+            </div>
+            <div class="queue-stat-item">
+              <div class="stat-icon">⏸️</div>
+              <div class="stat-value" id="queuePaused">0</div>
+              <div class="stat-label">已暂停</div>
+            </div>
+            <div class="queue-stat-item">
+              <div class="stat-icon">⌛</div>
+              <div class="stat-value" id="queueWaitTime">0ms</div>
+              <div class="stat-label">平均等待</div>
+            </div>
+            <div class="queue-stat-item">
+              <div class="stat-icon">📊</div>
+              <div class="stat-value" id="queueTotal">0</div>
+              <div class="stat-label">累计任务</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 活跃会话 -->
+        <div class="panel-card sessions-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="title-emoji">💬</span>
+              <span>活跃会话</span>
+            </div>
+            <div class="session-count-badge" id="sessionCountBadge">0 个会话</div>
+          </div>
+          <div class="sessions-list" id="sessionsList">
+            <!-- 会话卡片动态插入 -->
+          </div>
+        </div>
+
+        <!-- 会话关系图 -->
+        <div class="panel-card map-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="title-emoji">🕸️</span>
+              <span>会话关系网络</span>
+            </div>
+          </div>
+          <div class="session-map" id="sessionMap">
+            <div class="map-center-node">
+              <div class="center-emoji">👤</div>
+              <div class="center-label">你</div>
+            </div>
+            <!-- 会话节点动态生成 -->
+          </div>
+        </div>
+
+        <!-- Token 使用趋势 -->
+        <div class="panel-card chart-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="title-emoji">📈</span>
+              <span>Token 使用趋势</span>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="tokenChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部：会话详情表格 -->
+    <div class="panel-card sessions-table-panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="title-emoji">📋</span>
+          <span>会话详细信息</span>
+        </div>
+      </div>
+      <div class="table-container">
+        <table class="sessions-table" id="sessionsTable">
+          <thead>
+            <tr>
+              <th>通道</th>
+              <th>用户</th>
+              <th>模型</th>
+              <th>输入 Token</th>
+              <th>输出 Token</th>
+              <th>总计</th>
+              <th>最后活跃</th>
+            </tr>
+          </thead>
+          <tbody id="sessionsTableBody">
+            <!-- 表格行动态插入 -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart.js 图表库 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  
+  <!-- 主脚本 -->
+  <script src="/js/main.js"></script>
+</body>
+</html>

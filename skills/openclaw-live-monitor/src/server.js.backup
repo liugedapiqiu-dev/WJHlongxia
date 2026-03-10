@@ -1,0 +1,565 @@
+const express = require('express');
+const http = require('http');
+const WebSocket = require('ws');
+const fs = require('fs');
+const path = require('path');
+const { Tail } = require('tail');
+
+const app = express();
+const PORT = 18790;
+
+// 创建 HTTP 服务器
+const server = http.createServer(app);
+
+// 创建 WebSocket 服务器
+const wss = new WebSocket.Server({ server });
+
+// 静态文件服务
+app.use(express.static(path.join(__dirname, '../public')));
+app.use('/styles', express.static(path.join(__dirname, '../styles')));
+
+// 日志文件路径
+const LOG_FILE = '/tmp/openclaw/openclaw-' + new Date().toISOString().split('T')[0] + '.log';
+
+// 中文转译词典
+const translationDict = {
+  'dispatch complete': '消息发送完成',
+  'WebSocket client started': 'WebSocket 客户端已启动',
+  'dedup warmup loaded': '去重缓存已加载',
+  'received message from': '收到来自的消息',
+  'dispatching to agent': '分发给 Agent 处理',
+  'abort signal received': '收到中止信号',
+  'Gateway failed to start': 'Gateway 启动失败',
+  'gateway already running': 'Gateway 已在运行',
+  'Port is already in use': '端口已被占用',
+  'event-dispatch is ready': '事件分发已就绪',
+  'logged in to feishu as': '已登录飞书',
+  'starting WebSocket connection': '正在启动 WebSocket 连接',
+  'bot open_id resolved': '机器人 OpenID 已解析',
+  'Message read event': '消息已读事件',
+  'User entered P2P chat': '用户进入私聊',
+  'Browser control service ready': '浏览器控制服务已就绪',
+  'signal SIGINT received': '收到中断信号 (SIGINT)',
+  'received SIGINT; shutting down': '收到中断信号，正在关闭',
+  'gmail watcher stopped': 'Gmail 监控器已停止',
+  'heartbeat: started': '心跳监控已启动',
+  'cron: timer armed': '定时任务已设置',
+  'canvas host mounted': 'Canvas 服务已挂载',
+  'agent model': '使用的 AI 模型',
+  'listening on': '正在监听',
+  'log file': '日志文件路径',
+  'Registered hook': '已注册钩子函数',
+  'memory slot plugin not found': '内存插槽插件未找到'
+};
+
+// 事件类型中文映射
+const eventTypeMap = {
+  'im.message.message_read_v1': '飞书消息已读',
+  'im.chat.access_event.bot_p2p_chat_entered_v1': '用户进入机器人私聊',
+  'im.message.receive_v1': '收到飞书消息',
+  'im.message.send_v1': '发送飞书消息'
+};
+
+// 智能解析 JSON 日志，生成人类可读的中文描述
+function parseJsonLogToHuman(parsed) {
+  // 尝试从不同位置提取事件类型
+  let eventType = '';
+  let eventDesc = '';
+  let details = '';
+  
+  // 从 "0" 字段提取事件描述
+  if (parsed['0']) {
+    const field0 = String(parsed['0']);
+    
+    // 检测飞书消息已读事件
+    if (field0.includes('Message read event')) {
+      eventType = '📖 消息已读';
+      try {
+        const eventData = JSON.parse(field0.replace(/.*Message read event:?\s*/, ''));
+        const reader = eventData.reader?.reader_id;
+        const userId = reader?.user_id || reader?.open_id || '未知用户';
+        const msgId = eventData.message_id_list?.[0] || '';
+        const time = eventData.reader?.read_time 
+          ? new Date(parseInt(eventData.reader.read_time)).toLocaleTimeString('zh-CN')
+          : '未知时间';
+        eventDesc = `用户 ${userId.substring(0, 8)}... 在 ${time} 已读消息 ${msgId.substring(0, 10)}...`;
+      } catch (e) {
+        eventDesc = '检测到消息已读事件';
+      }
+    }
+    // 检测用户进入私聊
+    else if (field0.includes('User entered P2P chat')) {
+      eventType = '💬 用户私聊';
+      try {
+        const eventData = JSON.parse(field0.replace(/.*User entered P2P chat:?\s*/, ''));
+        const userId = eventData.user_id?.open_id || eventData.user_id?.user_id || '未知用户';
+        const chatId = eventData.chat_id || '';
+        eventDesc = `用户 ${userId.substring(0, 8)}... 进入私聊会话 ${chatId.substring(0, 10)}...`;
+      } catch (e) {
+        eventDesc = '检测到用户进入私聊';
+      }
+    }
+    // 检测收到文本消息
+    else if (field0.includes('收到文本消息')) {
+      eventType = '📨 收到消息';
+      // 尝试提取消息内容
+      const match = field0.match(/收到文本消息：[^,]+/);
+      eventDesc = match ? match[0] : '收到新的文本消息';
+    }
+    // 检测其他事件
+    else if (field0.includes('event_type')) {
+      try {
+        const eventData = JSON.parse(field0);
+        const evtType = eventData.event_type;
+        eventType = '📋 系统事件';
+        eventDesc = eventTypeMap[evtType] || `事件类型：${evtType}`;
+      } catch (e) {
+        eventDesc = field0.substring(0, 100);
+      }
+    }
+    else {
+      eventDesc = field0.substring(0, 150);
+    }
+  }
+  
+  // 从 "2" 字段提取额外描述
+  if (parsed['2'] && !eventDesc) {
+    eventDesc = String(parsed['2']).substring(0, 150);
+  }
+  
+  // 从 _meta 提取日志级别
+  const level = parsed._meta?.logLevelName || 'INFO';
+  const time = parsed.time ? new Date(parsed.time).toLocaleTimeString('zh-CN') : new Date().toLocaleTimeString('zh-CN');
+  const source = parsed._meta?.name || 'openclaw';
+  
+  // 生成人话摘要
+  if (eventType && eventDesc) {
+    return `[${time}] ${source}: ${eventType} - ${eventDesc}`;
+  }
+  
+  // 如果没有特殊解析，返回简化版
+  return `[${time}] ${source}: ${eventDesc || '系统日志'}`;
+}
+
+// 中文转译函数 - 优先使用 "2" 字段（人话描述）
+function translateLog(logLine) {
+  // 非 JSON 日志，直接返回
+  if (!logLine.trim().startsWith('{')) {
+    return logLine;
+  }
+  
+  try {
+    const parsed = JSON.parse(logLine);
+    
+    // 优先使用 "2" 字段（这是人话描述！）
+    let mainContent = parsed['2'] || '';
+    
+    // 如果没有 "2" 字段，尝试从 "0" 或 "1" 提取
+    if (!mainContent) {
+      if (parsed['0'] && typeof parsed['0'] === 'string') {
+        mainContent = parsed['0'];
+      } else if (parsed['1']) {
+        if (typeof parsed['1'] === 'string') {
+          mainContent = parsed['1'];
+        } else if (typeof parsed['1'] === 'object') {
+          // 对象类型，简单描述
+          if (parsed['1'].label) mainContent = `浏览器操作：${parsed['1'].label}`;
+          else if (parsed['1'].nextAt) mainContent = '定时任务已设置';
+          else mainContent = JSON.stringify(parsed['1']);
+        }
+      }
+    }
+    
+    const time = parsed.time ? new Date(parsed.time).toLocaleTimeString('zh-CN') : new Date().toLocaleTimeString('zh-CN');
+    
+    // 事件类型识别
+    let icon = '📋';
+    let label = '系统日志';
+    let eventDesc = mainContent || '收到系统日志';
+    
+    // 根据内容识别事件类型并转译
+    if (mainContent.includes('Message read event')) { 
+      icon = '📖'; label = '消息已读'; 
+      eventDesc = '有用户阅读了消息';
+    }
+    else if (mainContent.includes('User entered P2P chat')) { 
+      icon = '💬'; label = '用户私聊'; 
+      eventDesc = '有用户进入私聊会话';
+    }
+    else if (mainContent.includes('收到文本消息')) { 
+      icon = '📨'; label = '收到消息'; 
+      eventDesc = mainContent.replace('收到文本消息：', '').substring(0, 50);
+    }
+    else if (mainContent.includes('收到富文本消息')) { 
+      icon = '📨'; label = '收到消息'; 
+      eventDesc = mainContent.replace('收到富文本消息：', '').substring(0, 50);
+    }
+    else if (mainContent.includes('发送图片')) { 
+      icon = '📤'; label = '发送图片'; 
+      eventDesc = '已发送一张图片';
+    }
+    else if (mainContent.includes('cron: timer armed')) { 
+      icon = '⏰'; label = '定时任务';
+      eventDesc = '定时器已启动，等待下次执行';
+    }
+    else if (mainContent.includes('Image resized')) { 
+      icon = '🖼️'; label = '图片处理';
+      eventDesc = '图片已压缩优化';
+    }
+    else if (mainContent.includes('SIGINT')) { 
+      icon = '⚠️'; label = '系统信号'; 
+      eventDesc = '收到中断信号';
+    }
+    else if (mainContent.includes('heartbeat')) { 
+      icon = '💓'; label = '心跳检查'; 
+      eventDesc = '心跳监控运行中';
+    }
+    else if (mainContent.includes('subsystem')) {
+      icon = '🔧'; label = '系统组件';
+      const match = mainContent.match(/subsystem[":\s]+([^"\s,]+)/i);
+      if (match) eventDesc = `组件 ${match[1]} 正在运行`;
+    }
+    else if (mainContent.includes('sendSmartMessage')) { 
+      icon = '💬'; label = '发送消息'; 
+      eventDesc = '正在发送智能消息';
+    }
+    else if (mainContent.includes('failed') || mainContent.includes('Error')) { 
+      icon = '❌'; label = '错误'; 
+      eventDesc = '发生错误';
+    }
+    else if (mainContent.includes('lane wait exceeded')) {
+      icon = '⌛'; label = '性能警告';
+      eventDesc = '消息队列等待时间过长';
+    }
+    else if (mainContent.includes('browser:screenshot')) {
+      icon = '📸'; label = '浏览器截图';
+      eventDesc = '正在执行网页截图';
+    }
+    
+    return `[${time}] ${icon} ${label}: ${eventDesc.substring(0, 100)}`;
+  } catch (e) {
+    return logLine.substring(0, 100);
+  }
+}
+
+// 健康检查数据
+let healthData = {
+  score: 100,
+  gatewayStatus: 'unknown',
+  feishuStatus: 'unknown',
+  memoryUsage: 0,
+  errorCount: 0,
+  lastCheck: null
+};
+
+// 执行健康检查
+async function runHealthCheck() {
+  const { exec } = require('child_process');
+  
+  exec('openclaw status', (error, stdout, stderr) => {
+    if (error) {
+      healthData.score = 0;
+      healthData.gatewayStatus = 'offline';
+      return;
+    }
+    
+    // 解析状态输出
+    if (stdout.includes('Gateway')) {
+      healthData.gatewayStatus = 'online';
+      healthData.score = 100;
+    }
+    
+    healthData.lastCheck = new Date().toISOString();
+    
+    // 广播健康数据到所有客户端
+    broadcast(JSON.stringify({
+      type: 'health',
+      data: healthData
+    }));
+  });
+}
+
+// 每分钟执行健康检查
+setInterval(runHealthCheck, 60000);
+
+// 存储最近的日志
+let recentLogs = [];
+const MAX_LOGS = 1000;
+
+// 监控日志文件
+function startLogMonitoring() {
+  if (!fs.existsSync(LOG_FILE)) {
+    console.log(`等待日志文件创建：${LOG_FILE}`);
+    setTimeout(startLogMonitoring, 5000);
+    return;
+  }
+  
+  console.log(`开始监控日志文件：${LOG_FILE}`);
+  
+  // 读取现有日志
+  const logs = fs.readFileSync(LOG_FILE, 'utf-8').split('\n').filter(l => l.trim());
+  recentLogs = logs.slice(-MAX_LOGS);
+  
+  // 发送历史日志到新连接的客户端
+  global.historicalLogs = recentLogs;
+  
+  // 监控新日志
+  const tail = new Tail(LOG_FILE);
+  
+  tail.on('line', (line) => {
+    if (line.trim()) {
+      const logEntry = {
+        timestamp: new Date().toISOString(),
+        raw: line,
+        translated: translateLog(line),
+        level: line.includes('ERROR') ? 'error' : 
+               line.includes('WARN') ? 'warn' : 'info'
+      };
+      
+      recentLogs.push(line);
+      if (recentLogs.length > MAX_LOGS) {
+        recentLogs.shift();
+      }
+      
+      // 广播新日志到所有客户端
+      broadcast(JSON.stringify({
+        type: 'log',
+        data: logEntry
+      }));
+      
+      // 统计错误数量
+      if (line.includes('ERROR')) {
+        healthData.errorCount++;
+        healthData.score = Math.max(0, healthData.score - 5);
+      }
+      
+      // 会话追踪：提取会话信息
+      const sessionInfo = extractSessionInfo(line);
+      if (sessionInfo) {
+        updateSession(sessionInfo);
+      }
+    }
+  });
+  
+  tail.on('error', (err) => {
+    console.error('Tail error:', err);
+  });
+}
+
+// WebSocket 连接管理
+function broadcast(message) {
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  });
+}
+
+wss.on('connection', (ws) => {
+  console.log('客户端已连接');
+  
+  // 发送历史日志
+  if (global.historicalLogs) {
+    global.historicalLogs.forEach((line) => {
+      ws.send(JSON.stringify({
+        type: 'log',
+        data: {
+          timestamp: new Date().toISOString(),
+          raw: line,
+          translated: translateLog(line),
+          level: line.includes('ERROR') ? 'error' : 
+                 line.includes('WARN') ? 'warn' : 'info'
+        }
+      }));
+    });
+  }
+  
+  // 发送当前健康状态
+  ws.send(JSON.stringify({
+    type: 'health',
+    data: healthData
+  }));
+  
+  ws.on('close', () => {
+    console.log('客户端已断开');
+  });
+});
+
+// API 端点
+app.get('/api/health', (req, res) => {
+  res.json(healthData);
+});
+
+app.get('/api/logs', (req, res) => {
+  res.json(recentLogs);
+});
+
+// 会话列表 API
+app.get('/api/sessions', (req, res) => {
+  res.json(getSessionsList());
+});
+
+// 主页面
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
+// 启动服务器
+server.listen(PORT, () => {
+  console.log(`
+╔═══════════════════════════════════════════════════════════╗
+║   OpenClaw Live Monitor 已启动！                          ║
+║                                                           ║
+║   访问地址：http://localhost:${PORT}/                       ║
+║   WebSocket: ws://localhost:${PORT}                         ║
+║                                                           ║
+║   功能：实时日志 | 健康自检 | 中文转译                    ║
+╚═══════════════════════════════════════════════════════════╝
+  `);
+  
+  // 开始监控日志
+  startLogMonitoring();
+  
+  // 立即执行一次健康检查
+  runHealthCheck();
+});
+
+// ============ 会话追踪功能 ============
+
+// 存储活跃会话
+let activeSessions = {};
+const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 分钟超时
+
+// 任务队列数据
+let queueData = {
+  queueAhead: 0,      // 队列中等待的任务数
+  waitedMs: 0,        // 当前等待时间
+  lanes: {},          // 各通道队列状态
+  lastUpdate: Date.now()
+};
+
+// 从日志中提取会话信息
+function extractSessionInfo(logLine) {
+  try {
+    const parsed = JSON.parse(logLine);
+    const mainContent = parsed['0'] || '';
+    const time = parsed.time ? new Date(parsed.time).getTime() : Date.now();
+    
+    // 检测私聊会话
+    if (mainContent.includes('User entered P2P chat')) {
+      const chatMatch = mainContent.match(/chat_id[":\s]+([^"\s,]+)/);
+      const userMatch = mainContent.match(/user_id[":\s]+([^"\s,]+)/);
+      if (chatMatch && userMatch) {
+        return {
+          type: 'p2p',
+          chatId: chatMatch[1],
+          userId: userMatch[1],
+          time: time
+        };
+      }
+    }
+    
+    // 检测消息已读
+    if (mainContent.includes('Message read event')) {
+      const chatMatch = mainContent.match(/chat_id[":\s]+([^"\s,]+)/);
+      const userMatch = mainContent.match(/user_id[":\s]+([^"\s,]+)/);
+      if (chatMatch && userMatch) {
+        return {
+          type: 'read',
+          chatId: chatMatch[1],
+          userId: userMatch[1],
+          time: time
+        };
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+// 从日志中提取队列信息
+function extractQueueInfo(logLine) {
+  try {
+    const parsed = JSON.parse(logLine);
+    const mainContent = parsed['1'] || parsed['0'] || '';
+    
+    // 检测队列等待日志
+    if (mainContent.includes('lane wait exceeded')) {
+      const laneMatch = mainContent.match(/lane=([^\s]+)/);
+      const waitedMatch = mainContent.match(/waitedMs=(\d+)/);
+      const queueMatch = mainContent.match(/queueAhead=(\d+)/);
+      
+      if (laneMatch && waitedMatch && queueMatch) {
+        const lane = laneMatch[1];
+        const waitedMs = parseInt(waitedMatch[1]);
+        const queueAhead = parseInt(queueMatch[1]);
+        
+        queueData.lanes[lane] = {
+          queueAhead,
+          waitedMs,
+          lastUpdate: Date.now()
+        };
+        
+        // 更新总体队列状态
+        queueData.queueAhead = Object.values(queueData.lanes)
+          .reduce((sum, l) => sum + l.queueAhead, 0);
+        queueData.waitedMs = Math.max(...Object.values(queueData.lanes).map(l => l.waitedMs), 0);
+        queueData.lastUpdate = Date.now();
+        
+        return true;
+      }
+    }
+  } catch (e) {}
+  return false;
+}
+
+// 更新会话数据
+function updateSession(sessionInfo) {
+  if (!sessionInfo) return;
+  
+  const key = sessionInfo.chatId;
+  if (!activeSessions[key]) {
+    activeSessions[key] = {
+      chatId: sessionInfo.chatId,
+      userId: sessionInfo.userId,
+      lastActive: sessionInfo.time,
+      messageCount: 0,
+      events: []
+    };
+  }
+  
+  activeSessions[key].lastActive = sessionInfo.time;
+  activeSessions[key].messageCount++;
+  activeSessions[key].events.push({
+    type: sessionInfo.type,
+    time: sessionInfo.time
+  });
+  
+  // 保留最近 10 个事件
+  if (activeSessions[key].events.length > 10) {
+    activeSessions[key].events.shift();
+  }
+  
+  // 广播会话更新
+  broadcast(JSON.stringify({
+    type: 'sessions',
+    data: getSessionsList()
+  }));
+}
+
+// 获取会话列表
+function getSessionsList() {
+  const now = Date.now();
+  return Object.values(activeSessions)
+    .filter(s => now - s.lastActive < SESSION_TIMEOUT)
+    .sort((a, b) => b.lastActive - a.lastActive)
+    .map(s => ({
+      ...s,
+      lastActiveStr: new Date(s.lastActive).toLocaleTimeString('zh-CN')
+    }));
+}
+
+// 在日志监控中集成会话追踪
+const originalStartLogMonitoring = global.startLogMonitoring;
+global.startLogMonitoring = function() {
+  // 会在全局 scope 执行，不需要额外处理
+};
