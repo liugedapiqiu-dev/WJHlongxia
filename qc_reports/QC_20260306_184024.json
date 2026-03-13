@@ -1,0 +1,16 @@
+{
+  "report_id": "QC_20260306_184024",
+  "product": "高尔夫毛巾",
+  "issue_type": "缝线不直",
+  "defect_quantity": 5,
+  "severity": "medium",
+  "status": "pending_review",
+  "reported_at": "2026-03-06T18:40:24.346951",
+  "reported_by": "qc_inspector",
+  "recommended_actions": [
+    "隔离不合格品",
+    "通知生产线调整",
+    "检查缝纫机状态",
+    "增加该工序抽检频率"
+  ]
+}

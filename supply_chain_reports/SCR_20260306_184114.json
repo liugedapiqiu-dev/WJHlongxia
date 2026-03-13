@@ -1,0 +1,25 @@
+{
+  "report_id": "SCR_20260306_184114",
+  "product": "蜘蛛侠背包",
+  "component": "拉链",
+  "supplier_type": "配件厂",
+  "issue_type": "停电",
+  "duration_days": 3,
+  "severity": "high",
+  "status": "assessing",
+  "reported_at": "2026-03-06T18:41:14.854862",
+  "expected_resume": "2026-03-09",
+  "impact_assessment": {
+    "production_delay": "待评估",
+    "delivery_impact": "待评估",
+    "alternative_supplier": "待确认",
+    "stock_level": "待检查"
+  },
+  "recommended_actions": [
+    "确认成品库存水平",
+    "联系备用拉链供应商",
+    "评估是否影响交货期",
+    "通知客户可能的延误",
+    "跟踪配件厂恢复进度"
+  ]
+}

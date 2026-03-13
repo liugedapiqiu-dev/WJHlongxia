@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+*.egg-info/
+dist/
+build/
+
+# Logs
+*.log
+*.log.*
+
+# Database files - DO NOT COMMIT
+*.db
+*.db-shm
+*.db-wal
+*.db.backup
+*.sqlite
+*.sqlite3
+
+# Index files
+*.index
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup
+
+# Credentials (if any)
+.env
+.env.local
+*.key
+*.pem
+
+# Large model files
+*.bin
+*.pt
+*.pth
+*.onnx
+
+# Node modules (if any)
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Runtime state
+state/*.json
+state/*.pickle
+connector/venv/

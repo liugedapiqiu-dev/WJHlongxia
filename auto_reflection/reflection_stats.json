@@ -1,0 +1,29 @@
+{
+  "auto_reflection": {
+    "name": "自动反思引擎",
+    "total_runs": 1,
+    "successful_runs": 1,
+    "failed_runs": 0,
+    "last_run": "2026-03-12T14:48:54.850821",
+    "last_error": null,
+    "failure_reasons": []
+  },
+  "memory_extraction": {
+    "name": "记忆提取引擎",
+    "total_runs": 0,
+    "successful_runs": 0,
+    "failed_runs": 0,
+    "last_run": null,
+    "last_error": null,
+    "failure_reasons": []
+  },
+  "brain_health": {
+    "name": "大脑健康监控",
+    "total_runs": 0,
+    "successful_runs": 0,
+    "failed_runs": 0,
+    "last_run": null,
+    "last_error": null,
+    "failure_reasons": []
+  }
+}

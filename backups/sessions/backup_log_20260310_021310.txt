@@ -1,0 +1,14 @@
+会话备份日志 - 20260310_021310
+============================================================
+
+活跃会话：6
+已删除：19
+已重置：15
+
+✅ sessions.json → /Users/jo/.vectorbrain/backups/sessions/sessions.json.20260310_021310
+✅ 75e97db9-375b-4bef-9805-3c95860245c0.jsonl → /Users/jo/.vectorbrain/backups/sessions/75e97db9-375b-4bef-9805-3c95860245c0.jsonl.20260310_021310
+✅ db7294b3-a9a0-4fc8-a2de-760420544a02.jsonl → /Users/jo/.vectorbrain/backups/sessions/db7294b3-a9a0-4fc8-a2de-760420544a02.jsonl.20260310_021310
+✅ fa239b13-7b92-4db1-b951-93378ce259a3.jsonl → /Users/jo/.vectorbrain/backups/sessions/fa239b13-7b92-4db1-b951-93378ce259a3.jsonl.20260310_021310
+✅ 938de0e0-04e4-4bf7-866b-cea69c9a94f7.jsonl → /Users/jo/.vectorbrain/backups/sessions/938de0e0-04e4-4bf7-866b-cea69c9a94f7.jsonl.20260310_021310
+✅ 36ab7556-8c21-4d37-abd2-6b153d10b864.jsonl → /Users/jo/.vectorbrain/backups/sessions/36ab7556-8c21-4d37-abd2-6b153d10b864.jsonl.20260310_021310
+✅ 713f6e24-2c53-4df5-acc9-a89cd61af9b3.jsonl → /Users/jo/.vectorbrain/backups/sessions/713f6e24-2c53-4df5-acc9-a89cd61af9b3.jsonl.20260310_021310

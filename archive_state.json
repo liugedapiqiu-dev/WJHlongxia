@@ -1,0 +1,95 @@
+{
+  "last_updated": "2026-03-13T09:30:00.803067",
+  "archived_sessions": {
+    "1ea0dd5f-7a62-43c4-9b02-74eef89b00d9": {
+      "archived_at": "2026-03-11T23:52:55.850323",
+      "message_count": 401,
+      "file_hash": "65662e1b1fde72f331374b20bf39a7c1",
+      "source_file": "0c1cfe0f"
+    },
+    "556a80b3-bd53-423c-bece-b1a2238d8f5c": {
+      "archived_at": "2026-03-11T23:52:55.870986",
+      "message_count": 691,
+      "file_hash": "4ac4d26c86ed1c8cf2adb80a52bdc318",
+      "source_file": "4e78264c"
+    },
+    "353cc9ce-5fa4-4ef1-ad25-a2b66bc5ed92": {
+      "archived_at": "2026-03-11T23:52:55.879591",
+      "message_count": 133,
+      "file_hash": "c594f2158fe1c7f21de1529caaa20e27",
+      "source_file": "41ed3aad"
+    },
+    "7976535a-f0b4-4385-8f3c-5a4eb85dccde": {
+      "archived_at": "2026-03-11T23:52:55.880099",
+      "message_count": 1,
+      "file_hash": "6858297a55a43d34913b3be9dd3b2aa7",
+      "source_file": "c760272f"
+    },
+    "f4163e4a-07fa-4a73-a8b1-d1bed13fef1b": {
+      "archived_at": "2026-03-11T23:52:55.880971",
+      "message_count": 11,
+      "file_hash": "fe1dc5093d07f9c423f859390099389a",
+      "source_file": "7197bbf8"
+    },
+    "36ab7556-8c21-4d37-abd2-6b153d10b864": {
+      "archived_at": "2026-03-11T23:52:55.881401",
+      "message_count": 1,
+      "file_hash": "dbc1f05a05f5a0fa11839639036cca75",
+      "source_file": "f6137c29"
+    },
+    "86836125-1822-4566-91ec-5ded59e10b80": {
+      "archived_at": "2026-03-12T15:30:01.223151",
+      "message_count": 348,
+      "file_hash": "05586c364a60ccf0bcdf5e968f8feb60",
+      "source_file": "9ca46544"
+    },
+    "4ae064b4-867b-47ca-878e-87e059f688dd": {
+      "archived_at": "2026-03-12T09:30:00.954108",
+      "message_count": 26,
+      "file_hash": "912c39b920addb98f4f1d298884e28b3",
+      "source_file": "6ca960b0"
+    },
+    "1206a5b9-e74a-4eac-a82f-236866b5c7be": {
+      "archived_at": "2026-03-12T23:30:00.921398",
+      "message_count": 262,
+      "file_hash": "c921aff311ac59916010b98140818377",
+      "source_file": "d3fa2741"
+    },
+    "d25299ef-ce3c-4210-8b88-9563959ed976": {
+      "archived_at": "2026-03-12T16:30:00.265306",
+      "message_count": 20,
+      "file_hash": "8fb8fc464b688a35f874335ed2e7a4c8",
+      "source_file": "f4d1c6ee"
+    },
+    "59d1a118-e64a-4a15-a70c-3fb40ead39ca": {
+      "archived_at": "2026-03-12T17:30:01.790691",
+      "message_count": 8,
+      "file_hash": "e995e5399a58bcc3aa15e5eef1dba93f",
+      "source_file": "c2d4358d"
+    },
+    "73875e31-0014-4b2c-80f6-d04d19841f05": {
+      "archived_at": "2026-03-13T03:30:01.176653",
+      "message_count": 164,
+      "file_hash": "9f58f301a5498071d3ff0e1a23b832e0",
+      "source_file": "ff096fc2"
+    },
+    "4ca57d9a-7a91-4e99-b28e-2ed10ba2c75c": {
+      "archived_at": "2026-03-13T01:30:00.343600",
+      "message_count": 14,
+      "file_hash": "f5f3832ee42bf3589b833382a50dad8f",
+      "source_file": "6531b4ec"
+    },
+    "55727b2f-7dd3-4112-adfe-c42ddd3290b4": {
+      "archived_at": "2026-03-13T01:30:00.346830",
+      "message_count": 32,
+      "file_hash": "e47d5373fddd93b6095eeb5a3b242874",
+      "source_file": "3973d451"
+    }
+  },
+  "stats": {
+    "total": 0,
+    "success": 0,
+    "failed": 0,
+    "skipped": 7
+  }
+}
